@@ -14,4 +14,4 @@ Send data via CAN
 What it currently does:
 Read data from MPU6050 module (4g sensitivity)
 Normalise it to m/s^2
-Sends it via CAN
+Sends it via USB
