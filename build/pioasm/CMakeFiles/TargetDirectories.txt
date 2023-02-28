@@ -1,3 +1,0 @@
-/home/bl4ck/pico/rear_sensor_array/build/pioasm/CMakeFiles/pioasm.dir
-/home/bl4ck/pico/rear_sensor_array/build/pioasm/CMakeFiles/edit_cache.dir
-/home/bl4ck/pico/rear_sensor_array/build/pioasm/CMakeFiles/rebuild_cache.dir
