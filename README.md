@@ -1,17 +1,16 @@
 # rear_sensor_array
 
-This code runs on bare metal raspi pico 
+This code runs on bare metal Raspi Pico 
 
-What it is supposed to do:
-Read data from MPU6050 module
-Normalise it from raw to m/s^2
+## What it is supposed to do:
 
-Read data from 2 potentiometers
-(maybe normalise it, idk)
+Read data from 2 potentiometers, the suspension position sensors on the coilovers of the car.
 
-Send data via CAN
+Read data from the accelerometer of the ACC8700 from Gravitech via i2c protocol.
 
-What it currently does:
-Read data from MPU6050 module (4g sensitivity)
-Normalise it to m/s^2
-Sends it via USB
+Read date from the magnetometer of the ACC8700 from Gravitech via i2c protocol.
+
+Normalise data in order to become readable by the user.
+
+Send the data via the CAN bus by using PIO inside the Raspi Pico
+
