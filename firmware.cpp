@@ -1,4 +1,4 @@
-//FSA firmware
+//RSA firmware
 
 #include <stdio.h>
 #include <string.h>
