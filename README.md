@@ -1,15 +1,16 @@
 # Front sensor array
 
 ## Description
-Regiune a gitlab-ului aflata sub controlul autoritatilor Marculesciene
-![alt text](https://memesboy.com/wp-content/uploads/2018/06/John-Cena-Wallpaper-John-Cena-Meme.jpg)
+This code runs bare metal on Raspi Pi Pico.
+It collects data via I2C from an accelerometer / magnetometer
+It also measures 2 suspension sensors
+Parses data and sends it via CAN BUS
 
 ## File structure, explained
-Here you wil find all the docs, pcb files and firware needed for FSA/RSA
+Here you wil find all the docs, pcb files and firware needed for RSA
 
 ## Other?
 Nada
-FIND ME DRIFTIN MY LOGAN
-![alt text](https://2.bp.blogspot.com/-UFszcR3QB34/UHTgLToyzTI/AAAAAAAAAB4/wn8-Plqq3m8/s640/hjshdsj.jpg)
+
 
 
