@@ -1,17 +1,15 @@
-# rear_sensor_array
+# Front sensor array
 
-This code runs on bare metal Raspi Pico 
+## Description
+Regiune a gitlab-ului aflata sub controlul autoritatilor Marculesciene
+![alt text](https://memesboy.com/wp-content/uploads/2018/06/John-Cena-Wallpaper-John-Cena-Meme.jpg)
 
-## What it is supposed to do:
+## File structure, explained
+Here you wil find all the docs, pcb files and firware needed for FSA/RSA
 
-Read data from 2 potentiometers, the suspension position sensors on the coilovers of the car.
+## Other?
+Nada
+FIND ME DRIFTIN MY LOGAN
+![alt text](https://2.bp.blogspot.com/-UFszcR3QB34/UHTgLToyzTI/AAAAAAAAAB4/wn8-Plqq3m8/s640/hjshdsj.jpg)
 
-Read data from the accelerometer of the ACC8700 from Gravitech via i2c protocol.
 
-Read date from the magnetometer of the ACC8700 from Gravitech via i2c protocol.
-
-Normalise data in order to become readable by the user.
-
-Send the data via the CAN bus by using PIO inside the Raspi Pico
-
-# Still in development
