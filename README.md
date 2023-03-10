@@ -1,4 +1,5 @@
 # RSA = Rear Sensor Array
+<img src="drive.png" width="50%" height="50%">
 
 ## Description
 This code runs bare metal on Raspi Pi Pico.
