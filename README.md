@@ -1,4 +1,4 @@
-# Front sensor array
+# RSA = Rear Sensor Array
 
 ## Description
 This code runs bare metal on Raspi Pi Pico.
