@@ -11,7 +11,7 @@ This code runs bare metal on Raspi Pi Pico.
 <p>I also finished the design of the PCB for this module</p>
 <p>It connects via an ethernet connector to the VCC GND and CAN bus of the car</p>
 <p>This was a great choice, because the ethernet cables have a small footprint and 8 cables are already bundled toghether</p>
-<img src="pcb_img.png">
+<img src="pcb_img.png" width="50%" height="50%">
 
 ## This module is made for the FSA car of UPB Drive
 Find us <a href="https://www.upbdrive.com/">here</a>
