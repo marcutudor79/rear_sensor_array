@@ -25,6 +25,11 @@
 #define CAN_RX 4
 #define CAN_TX 5
 
+// define CAN ids
+#define CAN_ACC_ID (0x06)
+#define CAN_MAG_ID (0x07)
+#define CAN_MSG_DELAY_MS (25)
+
 //define ADC paramters
 #define ADC_VREF 3.3
 #define ADC_RANGE 4096
@@ -38,6 +43,11 @@
 //the address of the ACC8700 accel
 static int addr = 0x1E; 
 
+// Define the number of axis for each sensor
+// Seems pretty obvios, but it's better to be verbose and have it defined somewhere.
+// This way it's easier to read
+#define SENSOR_AXIS_N (3)
+
 //reset function of acc8700 
 static int acc8700_reset() {
 
@@ -46,8 +56,9 @@ static int acc8700_reset() {
     // [7-1] = 0000 000
     // [0]: active=0
     uint8_t buf[] = {0x2A, 0x00};
-    if (i2c_write_blocking(i2c0, addr, buf, 2, true) == PICO_ERROR_GENERIC)
-        return 0;
+    if (i2c_write_blocking(i2c0, addr, buf, 2, true) == PICO_ERROR_GENERIC) {
+        return -1;
+    }
 
     // write 0001 1111 = 0x1F to magnetometer control register 1
     // [7]: m_acal=0: auto calibration disabled
@@ -57,8 +68,9 @@ static int acc8700_reset() {
     // [1-0]: m_hms=11=3: select hybrid mode with accel and magnetometer active
     buf[0] = 0x5B;
     buf[1] = 0x1F; 
-    if(i2c_write_blocking(i2c0, addr, buf, 2, true) == PICO_ERROR_GENERIC)
-        return 0;
+    if(i2c_write_blocking(i2c0, addr, buf, 2, true) == PICO_ERROR_GENERIC) {
+        return -1;
+    }
     
     // write 0010 0000 = 0x20 to magnetometer control register 2
     // [7]: reserved
@@ -71,8 +83,9 @@ static int acc8700_reset() {
     // [1-0]: m_rst_cnt=00 to enable magnetic reset each cycle 
     buf[0] = 0x5C; 
     buf[1] = 0x20;
-    if (i2c_write_blocking(i2c0, addr, buf, 2, true) == PICO_ERROR_GENERIC)
-        return 0;
+    if (i2c_write_blocking(i2c0, addr, buf, 2, true) == PICO_ERROR_GENERIC) {
+        return -1;
+    }
 
     // write 0000 0001= 0x01 to XYZ_DATA_CFG register
     // [7]: reserved
@@ -84,8 +97,9 @@ static int acc8700_reset() {
     // [1-0]: fs=01 for accelerometer range of +/-4g range with 0.488mg/LSB
     buf[0] = 0x0E;
     buf[1] = 0x01;
-    if(i2c_write_blocking(i2c0, addr, buf, 2, true) == PICO_ERROR_GENERIC)
-        return 0;   
+    if(i2c_write_blocking(i2c0, addr, buf, 2, true) == PICO_ERROR_GENERIC) {
+        return -1;   
+    }
 
     // write 0000 1101 = 0x0D to accelerometer control register 1
     // [7-6]: aslp_rate=00
@@ -95,10 +109,11 @@ static int acc8700_reset() {
     // [0]: active=1 to take the part out of standby and enable sampling
     buf[0] = 0x2A;
     buf[1] = 0x0D;
-    if(i2c_write_blocking(i2c0, addr, buf, 2, true) == PICO_ERROR_GENERIC)
-        return 0;
-    
-    return 1;      
+    if(i2c_write_blocking(i2c0, addr, buf, 2, true) == PICO_ERROR_GENERIC) {
+        return -1;
+    }
+
+    return 0;      
 }
 
 //read data from acc8700
@@ -111,12 +126,14 @@ static int acc8700_read(int16_t *accel, int16_t *magn) {
     uint8_t val = 0x00;
 
     //put the register for accelerometer reading on i2c data bus
-    if(i2c_write_blocking(i2c0, addr, &val, 1, true) == PICO_ERROR_GENERIC)
-        return 0;
+    if(i2c_write_blocking(i2c0, addr, &val, 1, true) == PICO_ERROR_GENERIC) {
+        return -1;
+    }
 
     //read the data from the ACCEL registers
-    if(i2c_read_blocking(i2c0, addr, buffer, 13, false) == PICO_ERROR_GENERIC)
-        return 0;
+    if(i2c_read_blocking(i2c0, addr, buffer, 13, false) == PICO_ERROR_GENERIC) {
+        return -1;
+    }
 
     //combine read data (8 bits) into 16 bit values
     *accel = (buffer[1] << 8 | buffer[2]>> 2);
@@ -128,7 +145,7 @@ static int acc8700_read(int16_t *accel, int16_t *magn) {
     *(magn+1) = (buffer[9] << 8 | buffer[10]);
     *(magn+2) = (buffer[11] << 8 | buffer[12]); 
 
-    return 1;
+    return 0;
 }
 
 volatile bool flag = false;
@@ -169,97 +186,53 @@ void canbus_setup(void)
 }
 
 //function that formats the data into values that can be transmitted via CAN
-static void can_transmit(struct can2040_msg outbound, float acc[3], float magn[3], float pos_l_f, float pos_r_f) {
-        
-        for (uint8_t i = 0; i < 3; i++) {
-            acc[i] = acc[i] * 100;
-            magn[i] = magn[i] * 100;
+static void can_transmit(struct can2040_msg *outbound) {
+    if(can2040_check_transmit(&cbus)) {
+        if(can2040_transmit(&cbus, outbound) == 0) {
+            printf("Packet id [%d] was sucessfully transmitted via CAN \n", outbound->id);
         }
-        
-        pos_l_f = pos_l_f * 100;
-        pos_r_f = pos_r_f * 100;
-
-        outbound.id = 0x6;
-
-        uint8_t high, low;
-
-        high = (uint8_t)((int)(floor(acc[0])) >> 8);
-        low = (uint8_t)((int)(floor(acc[0])));
-
-        outbound.data[0] = high;
-        outbound.data[1] = low;
-
-        high = (uint8_t)((int)(floor(acc[1])) >> 8);
-        low = (uint8_t)((int)(floor(acc[1])));
-
-        outbound.data[2] = high;
-        outbound.data[3] = low;
-
-        high = (uint8_t)((int)(floor(acc[2])) >> 8);
-        low = (uint8_t)((int)(floor(acc[2])));
-
-        outbound.data[4] = high;
-        outbound.data[5] = low;
-
-        high = (uint8_t)((int)(floor(pos_l_f)) >> 8);
-        low = (uint8_t)((int)(floor(pos_l_f)));
-
-        outbound.data[6] = high;
-        outbound.data[7] = low;
-        
-        outbound.dlc = (uint8_t)8;  
-        
-        if(can2040_check_transmit(&cbus)){
-            if(can2040_transmit(&cbus, &outbound) == 0)
-                printf("Packet 1 was sucessfully transmitted via CAN \n");
-            else
-                printf("Packet 1 was not transmitted \n");  
-            
+        else {
+            printf("Packet [%d] was not transmitted \n", outbound->id);  
         }
-        else
-            printf("No space \n");
+    }
+    else {
+        printf("No space \n");
+    }
+}
 
-        sleep_ms(25);
+static void convert_to_uint8_payload(uint8_t *result, float *payload, int payload_size) {
+    for(int i = 0; i < payload_size; i++) {
+        int data = floor(payload[i] * 100);
+        //The & 0xff might not be needed, but better keep it for safety.
+        result[i*2] = (uint8_t)((data >> 8) & 0xff);;
+        result[i*2 + 1] = (uint8_t)(data & 0xff);
+    }
+}
 
-        outbound.id = 7;
+static void send_acc_data(float *acc, float suspension_left) {
+    struct can2040_msg msg;
+    msg.id = CAN_ACC_ID;
 
-        high = (uint8_t)((int)(floor(magn[0])) >> 8);
-        low = (uint8_t)((int)(floor(magn[0])));
+    // Convert the data
+    convert_to_uint8_payload(&(msg.data[0]), acc, SENSOR_AXIS_N);
+    convert_to_uint8_payload(&(msg.data[6]), &suspension_left, 1);
 
-        outbound.data[0] = high;
-        outbound.data[1] = low;
+    // Send data.
+    // TODO: Add error codes here and treat error cases
+    can_transmit(&msg);
+}
 
-        high = (uint8_t)((int)(floor(magn[1])) >> 8);
-        low = (uint8_t)((int)(floor(magn[1])));
+static void send_mag_data(float *mag, float suspension_right) {
+    struct can2040_msg msg;
+    msg.id = CAN_MAG_ID;
 
-        outbound.data[2] = high;
-        outbound.data[3] = low;
+    // Convert the data
+    convert_to_uint8_payload(&(msg.data[0]), mag, SENSOR_AXIS_N);
+    convert_to_uint8_payload(&(msg.data[6]), &suspension_right, 1);
 
-        high = (uint8_t)((int)(floor(magn[2])) >> 8);
-        low = (uint8_t)((int)(floor(magn[2])));
-
-        outbound.data[4] = high;
-        outbound.data[5] = low;
-
-        high = (uint8_t)((int)(floor(pos_r_f)) >> 8);
-        low = (uint8_t)((int)(floor(pos_r_f)));
-
-        outbound.data[6] = high;
-        outbound.data[7] = low;
-
-        outbound.dlc = (uint8_t)8;                
-        
-        if(can2040_check_transmit(&cbus)){
-            if(can2040_transmit(&cbus, &outbound) == 0)
-                printf("Packet 2 was sucessfully transmitted via CAN \n");
-            else
-                printf("Packet 2 was not transmitted \n");  
-            
-        }
-        else
-            printf("No space \n");
-     
-
+    // Send data.
+    // TODO: Add error codes here and treat error cases
+    can_transmit(&msg);
 }
 
 int main() {
@@ -285,7 +258,7 @@ int main() {
     bi_decl(bi_2pins_with_func(SDA, SCL, GPIO_FUNC_I2C));    
 
     //initialise the accelerometer
-    if(acc8700_reset() == 0)
+    if(acc8700_reset() < 0)
         while(1) {
             printf("acc8700 reset error");
             sleep_ms(500);
@@ -297,7 +270,7 @@ int main() {
     float acc[3];
     float magn[3];
     float pos_l_f;
-    float pos_r_f;       
+    float pos_r_f;    
 
     //initialise built_in led for heartbeat
     gpio_init(PICO_DEFAULT_LED_PIN);
@@ -310,7 +283,8 @@ int main() {
     while(1) {
         
         //read the acceleration and the magnetic field
-        acc8700_read(&acceleration, &magnetometer);     
+        // TODO: Add error handling. 
+        acc8700_read(acceleration, magnetometer);     
 
         //normalise the values        
         for (int i = 0; i < 3; i++) {
@@ -327,6 +301,7 @@ int main() {
         pos_r = adc_read();
 
         //transform raw pos data into %
+        //Q: Why keep position as float?
         pos_l_f = pos_l / (float)(ADC_RANGE - 1) * 100.0;
         pos_r_f = pos_r / (float)(ADC_RANGE - 1) * 100.0;
        
@@ -337,7 +312,11 @@ int main() {
         printf("Suspension position L = %.2f %%, R = %.2f %%\n", pos_l_f, pos_r_f);         
 
         //transmit the data via CAN
-        can_transmit(outbound, acc, magn, pos_l_f, pos_r_f);                     
+        //can_transmit(outbound, acc, magn, pos_l_f, pos_r_f);
+        send_acc_data(acc, pos_l_f);
+        sleep_ms(CAN_MSG_DELAY_MS);
+        send_mag_data(mag, pos_r_f);   
+        sleep_ms(CAN_MSG_DELAY_MS);                 
         
         //heartbeat
         gpio_put(PICO_DEFAULT_LED_PIN, set);
