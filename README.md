@@ -12,6 +12,7 @@ This code runs bare metal on Raspi Pi Pico.
 <p>It connects via an ethernet connector RJ-45 to the VCC GND and CAN bus of the car</p>
 <p>This was a great choice, because the ethernet cables have a small footprint and 8 cables are already bundled toghether</p>
 <img src="pcb_img.png" width="50%" height="50%">
+<p><i>Please beware of the jokes on the PCB Soldermask. They are greatly appreciated at Formula Student Comptetitions</i></p>
 
 ## This module is made for the FSA car of UPB Drive
 Find us <a href="https://www.upbdrive.com/">here</a>
